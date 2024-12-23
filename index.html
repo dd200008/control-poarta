@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Poarta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            font-size: 18px;
+            padding: 10px 20px;
+            margin: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+        }
+        .open {
+            background-color: #4CAF50; /* Verde */
+        }
+        .close {
+            background-color: #f44336; /* Roșu */
+        }
+        .stop {
+            background-color: #ff9800; /* Portocaliu */
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            padding: 10px;
+        }
+        #esp-status {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+        #esp-status.connected {
+            background-color: green;
+        }
+        #esp-status.disconnected {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Control Poarta</h1>
+    <p>Folosește butoanele de mai jos pentru a controla porțile.</p>
+    <button class="open" onclick="sendCommand('/open')">Deschidere</button>
+    <button class="close" onclick="sendCommand('/close')">Închidere</button>
+    <button class="stop" onclick="sendCommand('/stop')">Oprire</button>
+
+    <div id="status">
+        Starea ESP32: 
+        <span id="esp-status" class="disconnected"></span>
+    </div>
+
+    <div id="messages">
+        <h3>Mesaje de stare:</h3>
+        <ul id="message-list"></ul>
+    </div>
+
+    <script>
+        const espUrl = "http://89.149.125.138"; // URL-ul ESP32
+
+        // Funcție pentru trimiterea comenzilor către ESP32
+        function sendCommand(command) {
+            const url = `${espUrl}${command}`;
+            fetch(url)
+                .then(response => {
+                    if (response.ok) {
+                        alert(`Comanda "${command}" trimisă cu succes!`);
+                    } else {
+                        alert(`Eroare la trimiterea comenzii "${command}".`);
+                    }
+                })
+                .catch(error => {
+                    alert("A apărut o problemă la trimiterea comenzii: " + error);
+                });
+        }
+
+        // Funcție pentru verificarea conexiunii ESP32
+        function checkConnection() {
+            fetch(`${espUrl}/status`) // Endpoint pentru verificarea conexiunii
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById("esp-status").className = "connected";
+                    } else {
+                        document.getElementById("esp-status").className = "disconnected";
+                    }
+                })
+                .catch(() => {
+                    document.getElementById("esp-status").className = "disconnected";
+                });
+        }
+
+        // Funcție pentru obținerea mesajelor de stare de la ESP32
+        function getStatusMessages() {
+            fetch(`${espUrl}/messages`) // Endpoint pentru mesaje
+                .then(response => response.json())
+                .then(data => {
+                    const messageList = document.getElementById("message-list");
+                    messageList.innerHTML = ""; // Golește lista de mesaje
+                    data.messages.forEach(message => {
+                        const li = document.createElement("li");
+                        li.textContent = message;
+                        messageList.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error("Eroare la obținerea mesajelor:", error);
+                });
+        }
+
+        // Verifică conexiunea și obține mesajele de stare la fiecare 2 secunde
+        setInterval(() => {
+            checkConnection();
+            getStatusMessages();
+        }, 2000);
+    </script>
+</body>
+</html>
